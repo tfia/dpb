@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct PasteEntry {
+    pub title: String,
     pub content: String,
     pub created_at: DateTime<Local>,
     pub expire_at: Option<DateTime<Local>>,

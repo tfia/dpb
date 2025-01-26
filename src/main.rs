@@ -62,6 +62,7 @@ mod tests {
             table.insert(
                 "my_key",
                 PasteEntry {
+                    title: "test".to_string(),
                     content: "test".to_string(),
                     created_at: time,
                     expire_at: Some(time),
@@ -75,6 +76,7 @@ mod tests {
         assert_eq!(
             table.get("my_key")?.unwrap().value(),
             PasteEntry {
+                title: "test".to_string(),
                 content: "test".to_string(),
                 created_at: time,
                 expire_at: Some(time)

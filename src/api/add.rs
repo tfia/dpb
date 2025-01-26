@@ -26,6 +26,7 @@ async fn add_paste(
     // generate key from time
     let key = chrono::Local::now().timestamp_nanos_opt().unwrap().to_string();
     let entry = PasteEntry {
+        title: paste.title.clone(),
         content: paste.content.clone(),
         created_at: chrono::Local::now(),
         expire_at: paste.expiration.map(|exp| {

@@ -25,7 +25,7 @@ async fn query_paste(
     }
     let entry = entry.unwrap().value();
     let response = QueryResponse {
-        title: key.clone(),
+        title: entry.title.clone(),
         content: entry.content.clone(),
         created_at: entry.created_at.to_rfc3339(),
         expire_at: entry.expire_at.map(|exp| exp.to_rfc3339()),
