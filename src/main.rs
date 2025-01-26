@@ -10,12 +10,7 @@ use redb::{Database, Error, ReadableTable, TableDefinition};
 
 use cli::{Cli, Config};
 use db::{PasteEntry, TABLE};
-
-#[get("/hello/{name}")]
-async fn greet(name: web::Path<String>) -> impl Responder {
-    log::info!(target: "greet_handler", "Greeting {}", name);
-    format!("Hello {name}!")
-}
+use dpb::api::add;
 
 #[actix_web::main]
 async fn main() -> Result<()> {
@@ -32,15 +27,18 @@ async fn main() -> Result<()> {
     };
 
     let db = Database::create("db.redb")?;
-    let write_txn = db.begin_write()?;
-    let read_txn = db.begin_read()?;
-    let table = read_txn.open_table(TABLE)?;
+    {
+        let write_txn = db.begin_write()?;
+        write_txn.open_table(TABLE)?;
+        write_txn.commit()?;
+    }
+    let db = std::sync::Arc::new(db);
 
-    HttpServer::new(|| {
+    HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
-            .route("/hello", web::get().to(|| async { "Hello World!" }))
-            .service(greet)
+            .app_data(web::Data::new(db.clone()))
+            .service(add::api_scope())
     })
     .bind((bind_address, bind_port))?
     .run()
