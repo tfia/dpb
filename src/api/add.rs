@@ -1,6 +1,7 @@
 use actix_web::{post, web, HttpResponse, Responder, Scope};
 use redb::{Database, Error, ReadableTable, TableDefinition};
 use serde::{Deserialize, Serialize};
+use short_crypt::ShortCrypt;
 
 use crate::db::{PasteEntry, TABLE};
 
@@ -19,12 +20,13 @@ pub struct AddResponse {
 #[post("")]
 async fn add_paste(
     db: web::Data<std::sync::Arc<Database>>,
+    sc: web::Data<std::sync::Arc<ShortCrypt>>,
     paste: web::Json<AddRequest>,
 ) -> impl Responder {
     let write_txn = db.begin_write().unwrap();
     
     // generate key from time
-    let key = chrono::Local::now().timestamp_nanos_opt().unwrap().to_string();
+    let key = chrono::Local::now().timestamp_nanos_opt().unwrap();
     let entry = PasteEntry {
         title: paste.title.clone(),
         content: paste.content.clone(),
@@ -36,12 +38,14 @@ async fn add_paste(
 
     // write table
     {
-        let mut table = write_txn.open_table::<&str, PasteEntry>(TABLE).unwrap();
-        table.insert(key.as_str(), entry).unwrap();
+        let mut table = write_txn.open_table::<i64, PasteEntry>(TABLE).unwrap();
+        table.insert(key, entry).unwrap();
     }
     write_txn.commit().unwrap();
 
-    HttpResponse::Ok().json(AddResponse { key })
+    let response_key = sc.encrypt_to_url_component(key.to_string().as_bytes());
+
+    HttpResponse::Ok().json(AddResponse { key: response_key })
 }
 
 pub fn api_scope() -> Scope {

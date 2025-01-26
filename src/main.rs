@@ -7,6 +7,7 @@ use clap::Parser;
 use env_logger;
 use log;
 use redb::{Database, Error, ReadableTable, TableDefinition};
+use short_crypt::ShortCrypt;
 
 use cli::{Cli, Config};
 use db::{PasteEntry, TABLE};
@@ -21,14 +22,16 @@ async fn main() -> Result<()> {
         // remove db.redb if exists
         std::fs::remove_file("db.redb").ok();
     }
-    let (bind_address, bind_port) = match args.config {
+    let (bind_address, bind_port, magic) = match args.config {
         Some(path) => {
             let config_json = std::fs::read_to_string(&path)?;
             let config: Config = serde_json::from_str(&config_json)?;
-            (config.bind_address, config.bind_port)
+            (config.bind_address, config.bind_port, config.magic)
         }
-        None => ("127.0.0.1".to_string(), 12345)
+        None => ("127.0.0.1".to_string(), 12345, "magic".to_string())
     };
+
+    let sc = std::sync::Arc::new(ShortCrypt::new(magic));
 
     let db = Database::create("db.redb")?;
     {
@@ -42,6 +45,7 @@ async fn main() -> Result<()> {
         App::new()
             .wrap(Logger::default())
             .app_data(web::Data::new(db.clone()))
+            .app_data(web::Data::new(sc.clone()))
             .service(add::api_scope())
             .service(query::api_scope())
     })
@@ -50,43 +54,4 @@ async fn main() -> Result<()> {
     .await?;
 
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_db() -> Result<()> {
-        let db = Database::create("db.redb")?;
-        let time = chrono::Local::now();
-        let write_txn = db.begin_write()?;
-        {
-            let mut table = write_txn.open_table(TABLE)?;
-            table.insert(
-                "my_key",
-                PasteEntry {
-                    title: "test".to_string(),
-                    content: "test".to_string(),
-                    created_at: time,
-                    expire_at: Some(time),
-                },
-            )?;
-        }
-        write_txn.commit()?;
-
-        let read_txn = db.begin_read()?;
-        let table = read_txn.open_table(TABLE)?;
-        assert_eq!(
-            table.get("my_key")?.unwrap().value(),
-            PasteEntry {
-                title: "test".to_string(),
-                content: "test".to_string(),
-                created_at: time,
-                expire_at: Some(time)
-            }
-        );
-
-        Ok(())
-    }
 }

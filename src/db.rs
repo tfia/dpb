@@ -36,4 +36,4 @@ impl Value for PasteEntry {
     }
 }
 
-pub const TABLE: TableDefinition<&str, PasteEntry> = TableDefinition::new("paste_data");
+pub const TABLE: TableDefinition<i64, PasteEntry> = TableDefinition::new("paste_data");

@@ -1,6 +1,7 @@
 use actix_web::{get, web, HttpResponse, Responder, Scope};
 use redb::{Database, Error, ReadableTable, TableDefinition};
 use serde::{Deserialize, Serialize};
+use short_crypt::ShortCrypt;
 
 use crate::db::{PasteEntry, TABLE};
 
@@ -15,11 +16,15 @@ pub struct QueryResponse {
 #[get("/{key}")]
 async fn query_paste(
     db: web::Data<std::sync::Arc<Database>>,
+    sc: web::Data<std::sync::Arc<ShortCrypt>>,
     key: web::Path<String>,
 ) -> impl Responder {
+    let key = key.into_inner();
+    let key = sc.decrypt_url_component(&key).unwrap();
+    let key = String::from_utf8(key).unwrap().parse::<i64>().unwrap();
     let read_txn = db.begin_read().unwrap();
-    let table = read_txn.open_table::<&str, PasteEntry>(TABLE).unwrap();
-    let entry = table.get(key.as_str()).unwrap();
+    let table = read_txn.open_table::<i64, PasteEntry>(TABLE).unwrap();
+    let entry = table.get(key).unwrap();
     if entry.is_none() {
         return HttpResponse::NotFound().finish();
     }

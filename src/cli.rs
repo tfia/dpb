@@ -16,4 +16,5 @@ pub struct Cli {
 pub struct Config {
     pub bind_address: String,
     pub bind_port: u16,
+    pub magic: String,
 }
