@@ -10,7 +10,7 @@ use redb::{Database, Error, ReadableTable, TableDefinition};
 
 use cli::{Cli, Config};
 use db::{PasteEntry, TABLE};
-use dpb::api::add;
+use dpb::api::{add, query};
 
 #[actix_web::main]
 async fn main() -> Result<()> {
@@ -39,6 +39,7 @@ async fn main() -> Result<()> {
             .wrap(Logger::default())
             .app_data(web::Data::new(db.clone()))
             .service(add::api_scope())
+            .service(query::api_scope())
     })
     .bind((bind_address, bind_port))?
     .run()
@@ -62,6 +63,7 @@ mod tests {
                 "my_key",
                 PasteEntry {
                     content: "test".to_string(),
+                    created_at: time,
                     expire_at: Some(time),
                 },
             )?;
@@ -74,6 +76,7 @@ mod tests {
             table.get("my_key")?.unwrap().value(),
             PasteEntry {
                 content: "test".to_string(),
+                created_at: time,
                 expire_at: Some(time)
             }
         );
