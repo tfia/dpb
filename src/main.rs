@@ -17,6 +17,10 @@ async fn main() -> Result<()> {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
     let args = Cli::parse();
     log::info!("Cli arguments: {:?}", args);
+    if args.flush_data {
+        // remove db.redb if exists
+        std::fs::remove_file("db.redb").ok();
+    }
     let (bind_address, bind_port) = match args.config {
         Some(path) => {
             let config_json = std::fs::read_to_string(&path)?;
