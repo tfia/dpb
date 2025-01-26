@@ -24,7 +24,7 @@ Response:
 }
 ```
 
-- GET `/s/{key}`
+- GET `/query/{key}`
 
 Response:
 
