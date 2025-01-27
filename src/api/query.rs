@@ -1,9 +1,10 @@
 use actix_web::{get, web, HttpResponse, Responder, Scope};
-use redb::{Database, Error, ReadableTable, TableDefinition};
+use redb::Database;
 use serde::{Deserialize, Serialize};
 use short_crypt::ShortCrypt;
 
 use crate::db::{PasteEntry, TABLE};
+use crate::error::{ApiResult, ApiError};
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct QueryResponse {
@@ -18,24 +19,33 @@ async fn query_paste(
     db: web::Data<std::sync::Arc<Database>>,
     sc: web::Data<std::sync::Arc<ShortCrypt>>,
     key: web::Path<String>,
-) -> impl Responder {
+) -> ApiResult<impl Responder> {
     let key = key.into_inner();
-    let key = sc.decrypt_url_component(&key).unwrap();
-    let key = String::from_utf8(key).unwrap().parse::<i64>().unwrap();
-    let read_txn = db.begin_read().unwrap();
-    let table = read_txn.open_table::<i64, PasteEntry>(TABLE).unwrap();
-    let entry = table.get(key).unwrap();
-    if entry.is_none() {
-        return HttpResponse::NotFound().finish();
-    }
-    let entry = entry.unwrap().value();
+    let key = match sc.decrypt_url_component(&key) {
+        Ok(key) => key,
+        Err(_) => {
+            return Err(ApiError::new_not_found())
+        }
+    };
+    
+    let key = String::from_utf8(key).unwrap().parse::<i64>()?;
+    let read_txn = db.begin_read()?;
+    let table = read_txn.open_table::<i64, PasteEntry>(TABLE)?;
+    let entry = table.get(key)?;
+    
+    let entry = match entry {
+        Some(entry) => entry.value(),
+        None => {
+            return Err(ApiError::new_not_found())
+        }
+    };
     let response = QueryResponse {
         title: entry.title.clone(),
         content: entry.content.clone(),
         created_at: entry.created_at.to_rfc3339(),
         expire_at: entry.expire_at.map(|exp| exp.to_rfc3339()),
     };
-    HttpResponse::Ok().json(response)
+    Ok(HttpResponse::Ok().json(response))
 }
 
 pub fn api_scope() -> Scope {

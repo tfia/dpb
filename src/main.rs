@@ -1,16 +1,16 @@
 mod cli;
 mod db;
 
-use actix_web::{get, middleware::Logger, post, web, App, HttpServer, Responder};
+use actix_web::{middleware::Logger, web, App, HttpServer};
 use anyhow::Result;
 use clap::Parser;
 use env_logger;
 use log;
-use redb::{Database, Error, ReadableTable, TableDefinition};
+use redb::Database;
 use short_crypt::ShortCrypt;
 
 use cli::{Cli, Config};
-use db::{PasteEntry, TABLE};
+use db::TABLE;
 use dpb::api::{add, query};
 
 #[actix_web::main]
