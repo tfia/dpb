@@ -28,21 +28,26 @@ async fn add_paste(
     
     // generate key from time
     let key = chrono::Local::now().timestamp_nanos_opt().unwrap();
-    if let Some(value) = paste.expiration {
-        if value > 604800 {
-            return Err(ApiError::new(
+
+    let exp = match paste.expiration {
+        Some(exp) => match exp {
+            0..=604800 => exp,
+            _ => return Err(ApiError::new(
                 ApiErrorType::InvalidRequest,
                 "Expiration too long".to_string(),
-            ))
-        }
-    }
+            )),
+        },
+        None => 0,
+    };
+
     let entry = PasteEntry {
         title: paste.title.clone(),
         content: paste.content.clone(),
         created_at: chrono::Local::now(),
-        expire_at: paste.expiration.map(|exp| {
-            chrono::Local::now() + chrono::Duration::seconds(exp as i64)
-        }),
+        expire_at: match exp {
+            0 => None,
+            _ => Some(chrono::Local::now() + chrono::Duration::seconds(exp as i64)),
+        }
     };
 
     // write table
