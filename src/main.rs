@@ -1,7 +1,8 @@
 mod cli;
 mod db;
+mod error;
 
-use actix_web::{middleware::Logger, web, App, HttpServer};
+use actix_web::{middleware::{DefaultHeaders, Logger}, web, App, HttpServer, ResponseError};
 use anyhow::Result;
 use clap::Parser;
 use env_logger;
@@ -12,6 +13,7 @@ use short_crypt::ShortCrypt;
 use cli::{Cli, Config};
 use db::TABLE;
 use dpb::api::{add, query};
+use error::ApiError;
 
 #[actix_web::main]
 async fn main() -> Result<()> {
@@ -44,10 +46,14 @@ async fn main() -> Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
+            .wrap(DefaultHeaders::new().add(("Access-Control-Allow-Origin", "*")))
             .app_data(web::Data::new(db.clone()))
             .app_data(web::Data::new(sc.clone()))
             .service(add::api_scope())
             .service(query::api_scope())
+            .default_service(web::to(|| async {
+                ApiError::new_not_found().error_response()
+            }))
     })
     .bind((bind_address, bind_port))?
     .run()
