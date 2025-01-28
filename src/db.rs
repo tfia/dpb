@@ -1,6 +1,7 @@
 use chrono::{DateTime, Local};
-use redb::{TableDefinition, Value};
+use redb::{Database, ReadableTable, TableDefinition, Value};
 use serde::{Deserialize, Serialize};
+use anyhow::Result;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct PasteEntry {
@@ -34,6 +35,29 @@ impl Value for PasteEntry {
     fn type_name() -> redb::TypeName {
         redb::TypeName::new("PasteEntry")
     }
+}
+
+pub fn delete_expired_data(db: &Database) -> Result<()> {
+    let write_txn = db.begin_write()?;
+    let now = Local::now();
+    {
+        let mut table = write_txn.open_table::<i64, PasteEntry>(TABLE)?;
+        let mut expired = vec![];
+        for entry in table.iter()? {
+            let (id, paste_entry) = entry?;
+            if let Some(expire_at) = paste_entry.value().expire_at {
+                if expire_at < now {
+                    expired.push(id.value());
+                }
+            }
+        }
+        for id in expired {
+            table.remove(id)?;
+        }
+    }
+    write_txn.commit()?;
+
+    Ok(())
 }
 
 pub const TABLE: TableDefinition<i64, PasteEntry> = TableDefinition::new("paste_data");

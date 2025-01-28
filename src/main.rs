@@ -5,13 +5,14 @@ mod error;
 use actix_web::{middleware::{DefaultHeaders, Logger}, web, App, HttpServer, ResponseError};
 use anyhow::Result;
 use clap::Parser;
+use db::delete_expired_data;
 use env_logger;
 use log;
 use redb::Database;
 use short_crypt::ShortCrypt;
+use tokio::time::{interval, Duration};
 
 use cli::{Cli, Config};
-use db::TABLE;
 use dpb::api::{add, query};
 use error::ApiError;
 
@@ -36,12 +37,18 @@ async fn main() -> Result<()> {
     let sc = std::sync::Arc::new(ShortCrypt::new(magic));
 
     let db = Database::create("db.redb")?;
-    {
-        let write_txn = db.begin_write()?;
-        write_txn.open_table(TABLE)?;
-        write_txn.commit()?;
-    }
     let db = std::sync::Arc::new(db);
+
+    let db_clone = db.clone();
+    tokio::spawn(async move {
+        let mut interval = interval(Duration::from_secs(2));
+        loop {
+            interval.tick().await;
+            if let Err(e) = delete_expired_data(&db_clone) {
+                log::error!("Failed to delete expired data: {:?}", e);
+            }
+        }
+    });
 
     HttpServer::new(move || {
         App::new()
