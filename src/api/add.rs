@@ -6,6 +6,10 @@ use short_crypt::ShortCrypt;
 use crate::db::{PasteEntry, TABLE};
 use crate::error::{ApiResult, ApiError, ApiErrorType};
 
+const MAX_EXPIRE: u64 = 604800;
+const MAX_TITLE: usize = 200;
+const MAX_CONTENT: usize = 80 * 1024; // 80 KiB 
+
 #[derive(Deserialize, Serialize, Clone)]
 pub struct AddRequest {
     pub title: String,
@@ -26,15 +30,28 @@ async fn add_paste(
 ) -> ApiResult<impl Responder> {
     let write_txn = db.begin_write()?;
     
+    if paste.title.len() > MAX_TITLE {
+        return Err(ApiError::new(
+            ApiErrorType::InvalidRequest,
+            "Title too long".to_string(),
+        ));
+    }
+    if paste.content.len() > MAX_CONTENT {
+        return Err(ApiError::new(
+            ApiErrorType::InvalidRequest,
+            "Content too long".to_string(),
+        ));
+    }
+    
     // generate key from time
     let key = chrono::Local::now().timestamp_nanos_opt().unwrap();
 
     let exp = match paste.expiration {
         Some(exp) => match exp {
-            0..=604800 => exp,
+            0..=MAX_EXPIRE => exp,
             _ => return Err(ApiError::new(
                 ApiErrorType::InvalidRequest,
-                "Expiration too long".to_string(),
+                "Invalid expiration".to_string(),
             )),
         },
         None => 0,
