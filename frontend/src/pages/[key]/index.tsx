@@ -2,7 +2,7 @@ import "@uiw/react-md-editor/markdown-editor.css";
 import "@uiw/react-markdown-preview/markdown.css";
 import React, { useState, useEffect } from 'react';
 import MarkdownPreview from '@uiw/react-markdown-preview';
-import { Button, Container, Dropdown, DropdownHeader, Grid, Header, Icon, Input, Placeholder, Segment, AccordionTitle, AccordionContent, Accordion, Divider, TextArea, Form } from 'semantic-ui-react';
+import { Button, Container, Grid, Header, Icon, Placeholder, Segment, AccordionTitle, AccordionContent, Accordion, Divider } from 'semantic-ui-react';
 import rehypeSanitize from "rehype-sanitize";
 import { getCodeString } from 'rehype-rewrite';
 import katex from 'katex';
@@ -30,19 +30,19 @@ const Home: React.FC = () => {
         .then((data) => {
           setMarkdownContent(data.content);
           setTitle(data.title);
-          let create_date = new Date(data.created_at);
+          const create_date = new Date(data.created_at);
           setCreateTime(create_date.toLocaleString());
           if (data.expire_at) {
-            let expire_date = new Date(data.expire_at);
+            const expire_date = new Date(data.expire_at);
             setExpireTime(expire_date.toLocaleString());
           }
           setLoading(false);
         })
-        .catch((error) => {
+        .catch(() => {
           router.push('/');
         });
     }
-  }, [key]);
+  }, [key, router]);
 
   return (
     <Container style={{ padding: '1rem', textAlign: 'center' }}>
