@@ -6,7 +6,7 @@ use short_crypt::ShortCrypt;
 use crate::db::{PasteEntry, TABLE};
 use crate::error::{ApiResult, ApiError, ApiErrorType};
 
-const MAX_EXPIRE: u64 = 604800;
+const MAX_EXPIRE: u64 = 604800; // 7 days
 const MAX_TITLE: usize = 200;
 const MAX_CONTENT: usize = 80 * 1024; // 80 KiB 
 
@@ -40,6 +40,18 @@ async fn add_paste(
         return Err(ApiError::new(
             ApiErrorType::InvalidRequest,
             "Content too long".to_string(),
+        ));
+    }
+    if paste.title.len() == 0 {
+        return Err(ApiError::new(
+            ApiErrorType::InvalidRequest,
+            "Title cannot be empty".to_string(),
+        ));
+    }
+    if paste.content.len() == 0 {
+        return Err(ApiError::new(
+            ApiErrorType::InvalidRequest,
+            "Content cannot be empty".to_string(),
         ));
     }
     
