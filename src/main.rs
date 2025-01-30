@@ -2,7 +2,8 @@ mod cli;
 mod db;
 mod error;
 
-use actix_web::{middleware::{DefaultHeaders, Logger}, web, App, HttpServer, ResponseError};
+use actix_cors::Cors;
+use actix_web::{middleware::Logger, web, App, HttpServer, ResponseError};
 use anyhow::Result;
 use clap::Parser;
 use db::delete_expired_data;
@@ -51,9 +52,14 @@ async fn main() -> Result<()> {
     });
 
     HttpServer::new(move || {
+        let cors = Cors::default()
+            .allow_any_origin()
+            .allowed_methods(vec!["GET", "POST"])
+            .allow_any_header()
+            .max_age(3600);
         App::new()
             .wrap(Logger::default())
-            .wrap(DefaultHeaders::new().add(("Access-Control-Allow-Origin", "*")))
+            .wrap(cors)
             .app_data(web::Data::new(db.clone()))
             .app_data(web::Data::new(sc.clone()))
             .service(add::api_scope())
