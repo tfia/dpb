@@ -123,7 +123,7 @@ const Home: React.FC = () => {
       <p style={{ fontSize: '1.2rem', marginBottom: '-1rem' }}>
         Share text online with Markdown and KaTeX support.
       </p>
-      <Grid centered>
+      <Grid centered stackable>
         <Grid.Column mobile={16} tablet={16} computer={16}>
           <div style={{ textAlign: 'right' }}>
             <a style={{ cursor: "pointer" }} onClick={showHelp}>
@@ -169,54 +169,56 @@ const Home: React.FC = () => {
               rehypePlugins: [[rehypeSanitize]],
             }}
           />
-          <Grid.Column mobile={16} tablet={16} computer={16}>
-            <div style={{ display: 'flex', marginTop: '15px' }}>
-              <Input
-                placeholder="Title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                style={{ flex: 8, marginRight: '5px' }}
-                disabled={loading}
-              />
-              <Dropdown
-                icon="hourglass end"
-                floating
-                labeled
-                button
-                className='icon'
-                header={<DropdownHeader icon="time" content="Expire Time" />}
-                options={expireOptions}
-                value={expireTime}
-                onChange={(e, { value }) => {
-                  setExpireTime(value as expireTimeType)
-                }}
-                style={{ flex: 1, marginRight: '5px', textAlign: 'center' }}
-                disabled={loading}
-              />
-
-              {expireTime === "custom" && (
-                <Input
-                  type="number"
-                  placeholder="Secs"
-                  value={customExpire}
-                  onChange={(e) => setCustomExpire(e.target.value)}
-                  style={{ width: '15%', marginRight: '5px' }}
-                  disabled={loading}
-                />
-              )}
-              <Button
-                primary
-                icon labelPosition='left'
-                style={{ flex: 1.4, textAlign: 'center' }}
-                onClick={handleConfirm}
-                loading={loading}
-              >
-                <Icon name="linkify" />
-                Generate Link
-              </Button>
-            </div>
-          </Grid.Column>
         </Grid.Column>
+        <Grid.Row columns={2} style={{ padding: 0 }} compact divided>
+          <Grid.Column mobile={16} tablet={8} computer={9}>
+            <Input
+              placeholder="Title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              style={{ width: '100%' }}
+              disabled={loading}
+            />
+          </Grid.Column>
+          <Grid.Column mobile={16} tablet={8} computer={7} style={{ display: 'flex' }}>
+            <Dropdown
+              icon="hourglass end"
+              floating
+              labeled
+              button
+              className='icon'
+              header={<DropdownHeader icon="time" content="Expire Time" />}
+              options={expireOptions}
+              value={expireTime}
+              onChange={(e, { value }) => {
+                setExpireTime(value as expireTimeType)
+              }}
+              style={{ flex: 0.9, marginRight: '5px', textAlign: 'center' }}
+              disabled={loading}
+            />
+
+            {expireTime === "custom" && (
+              <Input
+                type="number"
+                placeholder="Secs"
+                value={customExpire}
+                onChange={(e) => setCustomExpire(e.target.value)}
+                style={{ width: '25%', marginRight: '5px' }}
+                disabled={loading}
+              />
+            )}
+            <Button
+              primary
+              icon labelPosition='left'
+              style={{ flex: 1.2, textAlign: 'center' }}
+              onClick={handleConfirm}
+              loading={loading}
+            >
+              <Icon name="send" />
+              Publish
+            </Button>
+          </Grid.Column>
+        </Grid.Row>
       </Grid>
     </Container>
   );
