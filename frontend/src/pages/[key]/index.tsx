@@ -2,13 +2,14 @@ import "@uiw/react-md-editor/markdown-editor.css";
 import "@uiw/react-markdown-preview/markdown.css";
 import React, { useState, useEffect } from 'react';
 import MarkdownPreview from '@uiw/react-markdown-preview';
-import { Button, Container, Grid, Header, Icon, Placeholder, Segment, AccordionTitle, AccordionContent, Accordion, Divider } from 'semantic-ui-react';
+import { Button, Container, Grid, Header, Icon, Placeholder, Segment, AccordionTitle, AccordionContent, Accordion, Divider, Popup } from 'semantic-ui-react';
 import rehypeSanitize from "rehype-sanitize";
 import { getCodeString } from 'rehype-rewrite';
 import katex from 'katex';
 import 'katex/dist/katex.css';
 import { Helmet } from "react-helmet";
 import { useRouter } from "next/router";
+import QRCode from "react-qr-code";
 import { request } from '@/utils/network';
 import toast from "react-hot-toast";
 import { BACKEND_URL } from "@/constants/string";
@@ -71,9 +72,26 @@ const Home: React.FC = () => {
               <title>{title} - DPB</title>
             </Helmet>
             <Grid.Column mobile={16} tablet={16} computer={16}>
-              <Header as='h1'>{title}</Header>
+              <Header as='h1'>
+                {title}
+              </Header>
               <p>
                 <Icon name="calendar outline" />Created at {createTime} / <Icon name="hourglass half" />{expireTime ? `Will expire at ${expireTime}` : `Never expires`}
+                {" / "}<Popup
+                  content={
+                    <>
+                      <p><Icon name="linkify" />{`${key}`}</p>
+                      <QRCode value={`${window.location.origin}/${key}`} />
+                    </>
+                  }
+                  on='click'
+                  trigger={
+                    <span style={{ cursor: 'pointer' }}>
+                      <Icon style={{ color: 'grey' }} name="qrcode" />
+                      Show QR Code
+                    </span>
+                  }
+                />
               </p>
               <Divider />
               <MarkdownPreview
@@ -117,13 +135,13 @@ const Home: React.FC = () => {
                     <Button
                       circular
                       icon='copy outline'
-                      style={{ position: 'absolute', right: 0, top: '5px' }}
+                      style={{ position: 'absolute', right: 0, top: '5px', opacity: 0.7 }}
                       onClick={() => {
                         navigator.clipboard.writeText(markdownContent || '');
                         toast.success('Copied to clipboard!');
                       }}
                     />
-                    <p style={{ whiteSpace: 'pre-wrap' }}>
+                    <p style={{ whiteSpace: 'pre-wrap', overflow: 'auto' }}>
                       {markdownContent}
                     </p>
                   </Segment>
