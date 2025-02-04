@@ -16,7 +16,7 @@ cargo build --release
 
 This will generate the binary file at `target/release/dpb`.
 
-### Configuration
+### configuration
 
 You can pass these arguments to *dpb* backend cli:
 
@@ -99,7 +99,7 @@ Possible errors:
 
 ## Frontend
 
-### Development
+### development
 
 ```shell
 cd frontend
@@ -109,7 +109,7 @@ yarn dev
 
 This will start a development server at `http://localhost:3000`.
 
-### Production
+### production
 
 ```shell
 cd frontend
@@ -119,7 +119,7 @@ yarn build
 
 or just deploy it on Vercel.
 
-### Configuration
+### configuration
 
 The frontend reads the backend's URL from the environment variable `NEXT_PUBLIC_API_BASE_URL`. You can set this variable in the `.env.local` file.
 
