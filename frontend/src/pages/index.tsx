@@ -3,16 +3,17 @@ import "@uiw/react-markdown-preview/markdown.css";
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from "next/router";
-import { Button, Container, Dropdown, DropdownHeader, Grid, Header, Icon, Input, Segment } from 'semantic-ui-react';
+import { Button, Container, Dropdown, DropdownHeader, Grid, Header, Icon, Input, Segment, Modal } from 'semantic-ui-react';
 import rehypeSanitize from "rehype-sanitize";
 import { getCodeString } from 'rehype-rewrite';
 import katex from 'katex';
 import 'katex/dist/katex.css';
+import MarkdownPreview from '@uiw/react-markdown-preview';
 import { toast } from "react-hot-toast";
 import { Helmet } from "react-helmet";
 import { request } from '@/utils/network';
 import { AddRequest } from "@/utils/types";
-import { BACKEND_URL } from "@/constants/string";
+import { BACKEND_URL, MD_GUIDE } from "@/constants/string";
 
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), {
   ssr: false,
@@ -36,6 +37,8 @@ const Home: React.FC = () => {
   const [customExpire, setCustomExpire] = useState("");
   const [previewMode, setPreviewMode] = useState<"edit" | "live">("live");
   const [loading, setLoading] = useState<boolean>(false);
+  const [showHelp, setShowHelp] = useState<boolean>(false);
+  const [showAbout, setShowAbout] = useState<boolean>(false);
 
   const router = useRouter();
 
@@ -100,10 +103,6 @@ const Home: React.FC = () => {
       });
   };
 
-  const showHelp = () => { console.log("Help") }
-
-  const showAbout = () => { }
-
   return (
     <Container style={{ padding: '1rem', height: '100vh', textAlign: 'center' }}>
       <Helmet>
@@ -126,9 +125,9 @@ const Home: React.FC = () => {
       <Grid centered stackable>
         <Grid.Column mobile={16} tablet={16} computer={16}>
           <div style={{ textAlign: 'right' }}>
-            <a style={{ cursor: "pointer" }} onClick={showHelp}>
+            <a style={{ cursor: "pointer" }} onClick={() => setShowHelp(true)}>
               <Icon name="help" size="small" />Help
-            </a> · <a style={{ cursor: "pointer" }} onClick={showAbout}>
+            </a> · <a style={{ cursor: "pointer" }} onClick={() => setShowAbout(true)}>
               <Icon name="info circle" size="small" />About
             </a>
           </div>
@@ -220,6 +219,63 @@ const Home: React.FC = () => {
           </Grid.Column>
         </Grid.Row>
       </Grid>
+      <Modal
+        open={showHelp}
+        onClose={() => setShowHelp(false)}
+        closeIcon
+      >
+        <Modal.Header>Markdown Quick Guide</Modal.Header>
+        <Modal.Content scrolling>
+          <MarkdownPreview
+            source={MD_GUIDE}
+            components={{
+              code: ({ children = [], className, ...props }) => {
+                if (typeof children === 'string' && /^\$\$(.*)\$\$/.test(children)) {
+                  const html = katex.renderToString(children.replace(/^\$\$(.*)\$\$/, '$1'), {
+                    throwOnError: false,
+                  });
+                  return <code dangerouslySetInnerHTML={{ __html: html }} style={{ background: 'transparent' }} />;
+                }
+                const code = props.node && props.node.children ? getCodeString(props.node.children) : children;
+                if (
+                  typeof code === 'string' &&
+                  typeof className === 'string' &&
+                  /^language-katex/.test(className.toLocaleLowerCase())
+                ) {
+                  const html = katex.renderToString(code, {
+                    throwOnError: false,
+                  });
+                  return <code style={{ fontSize: '150%' }} dangerouslySetInnerHTML={{ __html: html }} />;
+                }
+                return <code className={String(className)}>{children}</code>;
+              },
+            }}
+            rehypePlugins={[[rehypeSanitize]]}
+          />
+        </Modal.Content>
+        <Modal.Actions>
+          <Button onClick={() => setShowHelp(false)}>Close</Button>
+        </Modal.Actions>
+      </Modal>
+      <Modal
+        open={showAbout}
+        onClose={() => setShowAbout(false)}
+        closeIcon
+        size="small"
+      >
+        <Modal.Header>About DPB</Modal.Header>
+        <Modal.Content>
+          <p>
+            DPB provides online pastebin service.
+          </p>
+          <p>
+            Built with Next.js and Semantic UI React.
+          </p>
+        </Modal.Content>
+        <Modal.Actions>
+          <Button onClick={() => setShowAbout(false)}>Close</Button>
+        </Modal.Actions>
+      </Modal>
     </Container>
   );
 };
