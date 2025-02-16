@@ -4,6 +4,7 @@ use redb::{TransactionError, TableError, StorageError, CommitError};
 use std::fmt;
 
 #[derive(Debug, Clone, Copy)]
+#[allow(dead_code)]
 pub enum ApiErrorType {
     NotFound = 1,
     InvalidRequest = 2,
@@ -121,4 +122,5 @@ impl From<std::num::ParseIntError> for ApiError {
     }
 }
 
+#[allow(dead_code)]
 pub type ApiResult<T> = Result<T, ApiError>;
