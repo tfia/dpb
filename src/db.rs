@@ -1,7 +1,9 @@
 use chrono::{DateTime, Local};
-use redb::{Database, ReadableTable, TableDefinition, Value};
+use redb::{Database, TableDefinition, Value};
 use serde::{Deserialize, Serialize};
 use anyhow::Result;
+use std::collections::BinaryHeap;
+use std::cmp::Reverse;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct PasteEntry {
@@ -37,19 +39,20 @@ impl Value for PasteEntry {
     }
 }
 
-pub fn delete_expired_data(db: &Database) -> Result<()> {
+pub type ExpireQueue = BinaryHeap::<Reverse<(DateTime<Local>, i64)>>;
+
+pub fn delete_expired_data(db: &Database, eq: &mut ExpireQueue) -> Result<()> {
     let write_txn = db.begin_write()?;
     let now = Local::now();
     {
         let mut table = write_txn.open_table::<i64, PasteEntry>(TABLE)?;
         let mut expired = vec![];
-        for entry in table.iter()? {
-            let (id, paste_entry) = entry?;
-            if let Some(expire_at) = paste_entry.value().expire_at {
-                if expire_at < now {
-                    expired.push(id.value());
-                }
+        while let Some(Reverse((expire_at, id))) = eq.peek() {
+            if *expire_at > now {
+                break;
             }
+            expired.push(*id);
+            eq.pop();
         }
         for id in expired {
             table.remove(id)?;

@@ -9,12 +9,14 @@ use clap::Parser;
 use db::delete_expired_data;
 use env_logger;
 use log;
-use redb::Database;
+use redb::{Database, ReadableTable};
 use short_crypt::ShortCrypt;
+use std::cmp::Reverse;
 use tokio::time::{interval, Duration};
 
 use cli::{Cli, Config};
 use dpb::api::{add, query};
+use dpb::db::{PasteEntry, TABLE, ExpireQueue};
 use error::ApiError;
 
 #[actix_web::main]
@@ -38,14 +40,34 @@ async fn main() -> Result<()> {
     let sc = std::sync::Arc::new(ShortCrypt::new(magic));
 
     let db = Database::create("db.redb")?;
+    // Create table
+    let write_txn = db.begin_write()?;
+    {
+        let _ = write_txn.open_table::<i64, PasteEntry>(TABLE)?;
+    }
+    write_txn.commit()?;
     let db = std::sync::Arc::new(db);
+
+    let mut expire_queue = ExpireQueue::new();
+    let read_txn = db.begin_read()?;
+    {
+        let table = read_txn.open_table::<i64, PasteEntry>(TABLE)?;
+        for entry in table.iter()? {
+            let (key, paste_entry) = entry?;
+            if let Some(expire_at) = paste_entry.value().expire_at {
+                expire_queue.push(Reverse((expire_at, key.value())));
+            }
+        }
+    }
+    let expire_queue = std::sync::Arc::new(std::sync::Mutex::new(expire_queue));
+    let expire_queue_clone = expire_queue.clone();
 
     let db_clone = db.clone();
     tokio::spawn(async move {
         let mut interval = interval(Duration::from_secs(2));
         loop {
             interval.tick().await;
-            if let Err(e) = delete_expired_data(&db_clone) {
+            if let Err(e) = delete_expired_data(&db_clone, &mut expire_queue_clone.lock().unwrap()) {
                 log::error!("Failed to delete expired data: {:?}", e);
             }
         }
@@ -62,6 +84,7 @@ async fn main() -> Result<()> {
             .wrap(cors)
             .app_data(web::Data::new(db.clone()))
             .app_data(web::Data::new(sc.clone()))
+            .app_data(web::Data::new(expire_queue.clone()))
             .service(add::api_scope())
             .service(query::api_scope())
             .default_service(web::to(|| async {

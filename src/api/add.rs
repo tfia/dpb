@@ -26,6 +26,7 @@ pub struct AddResponse {
 async fn add_paste(
     db: web::Data<std::sync::Arc<Database>>,
     sc: web::Data<std::sync::Arc<ShortCrypt>>,
+    eq: web::Data<std::sync::Arc<std::sync::Mutex<crate::db::ExpireQueue>>>,
     paste: web::Json<AddRequest>,
 ) -> ApiResult<impl Responder> {
     let write_txn = db.begin_write()?;
@@ -78,6 +79,11 @@ async fn add_paste(
             _ => Some(chrono::Local::now() + chrono::Duration::seconds(exp as i64)),
         }
     };
+
+    // push to expire queue
+    if let Some(expire_at) = entry.expire_at {
+        eq.lock().unwrap().push(std::cmp::Reverse((expire_at, key)));
+    }
 
     // write table
     {
