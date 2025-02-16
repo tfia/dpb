@@ -169,7 +169,7 @@ const Home: React.FC = () => {
             }}
           />
         </Grid.Column>
-        <Grid.Row columns={2} style={{ padding: 0 }} divided>
+        <Grid.Row columns={2} style={{ padding: 0, marginBottom: '15px' }} divided>
           <Grid.Column mobile={16} tablet={8} computer={9}>
             <Input
               placeholder="Title"
